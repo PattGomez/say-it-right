@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4338ca" />
+    <meta
+      name="description"
+      content="Practice English pronunciation. Listen to a native model, speak, and get instant word-by-word feedback."
+    />
+    <meta property="og:title" content="Say It Right — English Pronunciation Practice" />
+    <meta
+      property="og:description"
+      content="Listen, speak, and get instant feedback on your English pronunciation."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/png" href="./public/favicon.png" />
+    <title>Say It Right — Pronunciation Practice</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1a1a2e;
+        --muted: #6b7280;
+        --faint: #e5e7eb;
+        --line: #e8e8ef;
+        --paper: #f6f5fb;
+        --card: #ffffff;
+        --accent: #4338ca;
+        --accent-soft: #eef0ff;
+        --accent-ink: #3730a3;
+        --good: #16a34a;
+        --good-soft: #e9f8ef;
+        --bad: #dc2626;
+        --bad-soft: #fdeaea;
+        --warn: #d97706;
+        --radius: 18px;
+        --shadow: 0 1px 2px rgba(26, 26, 46, 0.04),
+          0 12px 32px rgba(26, 26, 46, 0.07);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(
+            1200px 600px at 50% -10%,
+            #ecebfb 0%,
+            rgba(236, 235, 251, 0) 60%
+          ),
+          var(--paper);
+        color: var(--ink);
+        font-family:
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          "SF Pro Text",
+          "Segoe UI",
+          "Helvetica Neue",
+          Helvetica,
+          Arial,
+          sans-serif;
+        font-feature-settings: "kern";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap {
+        width: min(680px, 100%);
+        margin: 0 auto;
+        padding: 28px 20px 80px;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 22px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: -0.01em;
+        color: var(--accent-ink);
+      }
+
+      .brand .dot {
+        font-size: 19px;
+        line-height: 1;
+      }
+
+      h1 {
+        margin: 10px 0 4px;
+        font-size: clamp(24px, 5vw, 30px);
+        letter-spacing: -0.02em;
+        line-height: 1.12;
+      }
+
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14.5px;
+        line-height: 1.5;
+      }
+
+      .levels {
+        display: flex;
+        gap: 6px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 5px;
+        box-shadow: var(--shadow);
+        margin: 22px auto 16px;
+        width: fit-content;
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      .level-btn {
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 9px 16px;
+        border-radius: 999px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition:
+          background 160ms ease,
+          color 160ms ease;
+      }
+
+      .level-btn:hover {
+        color: var(--ink);
+      }
+
+      .level-btn[aria-selected="true"] {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(67, 56, 202, 0.28);
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 26px 24px;
+      }
+
+      .meta-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .progress {
+        color: var(--muted);
+        font-size: 12.5px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .tip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--accent-soft);
+        color: var(--accent-ink);
+        font-size: 12.5px;
+        font-weight: 600;
+        padding: 5px 11px;
+        border-radius: 999px;
+        max-width: 60%;
+      }
+
+      .tip.hidden {
+        display: none;
+      }
+
+      .target {
+        font-size: clamp(26px, 6.5vw, 40px);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.18;
+        margin: 6px 0 4px;
+      }
+
+      .target .w {
+        border-radius: 7px;
+        padding: 0 2px;
+        transition: background 180ms ease, color 180ms ease;
+      }
+
+      .target .w.good {
+        background: var(--good-soft);
+        color: var(--good);
+      }
+
+      .target .w.bad {
+        background: var(--bad-soft);
+        color: var(--bad);
+      }
+
+      .phonetic {
+        color: var(--muted);
+        font-size: 14px;
+        min-height: 20px;
+        margin-bottom: 20px;
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--ink);
+        font: inherit;
+        font-size: 14.5px;
+        font-weight: 600;
+        padding: 12px 18px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition:
+          background 150ms ease,
+          border-color 150ms ease,
+          transform 120ms ease,
+          box-shadow 150ms ease;
+      }
+
+      .btn:hover {
+        border-color: #c9c9d6;
+        transform: translateY(-1px);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .btn[disabled] {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn .ico {
+        font-size: 17px;
+        line-height: 1;
+      }
+
+      .btn.mic {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(67, 56, 202, 0.28);
+        flex: 1 1 auto;
+        min-width: 160px;
+      }
+
+      .btn.mic:hover {
+        background: #3b31b5;
+        border-color: #3b31b5;
+      }
+
+      .btn.mic.listening {
+        background: var(--bad);
+        border-color: var(--bad);
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
+        animation: pulse 1.4s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45);
+        }
+        70% {
+          box-shadow: 0 0 0 16px rgba(220, 38, 38, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+        }
+      }
+
+      .result {
+        margin-top: 22px;
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+        display: none;
+      }
+
+      .result.show {
+        display: block;
+        animation: rise 280ms ease both;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .score-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .ring {
+        --p: 0;
+        --ring-color: var(--accent);
+        flex: 0 0 auto;
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: conic-gradient(
+          var(--ring-color) calc(var(--p) * 1%),
+          var(--faint) 0
+        );
+        transition: --p 600ms ease;
+      }
+
+      .ring::after {
+        content: attr(data-score);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--card);
+        display: grid;
+        place-items: center;
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--ring-color);
+      }
+
+      .score-text .verdict {
+        font-size: 17px;
+        font-weight: 700;
+        margin: 0 0 3px;
+      }
+
+      .score-text .heard {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13.5px;
+        line-height: 1.45;
+      }
+
+      .score-text .heard b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .playback {
+        margin-top: 16px;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        background: var(--accent-soft);
+        border-radius: 12px;
+        padding: 10px 12px;
+      }
+
+      .playback.show {
+        display: flex;
+      }
+
+      .playback audio {
+        height: 34px;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .playback .lbl {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--accent-ink);
+        white-space: nowrap;
+      }
+
+      .nav {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .custom {
+        margin-top: 16px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .custom input {
+        flex: 1 1 auto;
+        min-width: 0;
+        font: inherit;
+        font-size: 14.5px;
+        padding: 11px 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--card);
+        color: var(--ink);
+      }
+
+      .custom input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+        border-color: var(--accent);
+      }
+
+      .note {
+        margin-top: 14px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+
+      .banner {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        color: #9a3412;
+        font-size: 13px;
+        line-height: 1.5;
+        display: none;
+      }
+
+      .banner.show {
+        display: block;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 480px) {
+        .controls {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .btn.mic {
+          order: -1;
+        }
+        .tip {
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <span class="brand"><span class="dot">🗣️</span> Say It Right</span>
+        <h1>English Pronunciation Practice</h1>
+        <p class="sub">
+          Listen to a native model, say it out loud, and get instant
+          word-by-word feedback.
+        </p>
+      </header>
+
+      <div class="levels" role="tablist" aria-label="Difficulty level">
+        <button class="level-btn" role="tab" data-level="beginner">Beginner</button>
+        <button class="level-btn" role="tab" data-level="intermediate">
+          Intermediate
+        </button>
+        <button class="level-btn" role="tab" data-level="advanced">Advanced</button>
+        <button class="level-btn" role="tab" data-level="custom">Your text</button>
+      </div>
+
+      <main class="card">
+        <div class="banner" id="banner" role="status"></div>
+
+        <div class="meta-row">
+          <span class="progress" id="progress">1 / 1</span>
+          <span class="tip hidden" id="tip"></span>
+        </div>
+
+        <p class="target" id="target" aria-live="polite">—</p>
+        <p class="phonetic" id="phonetic"></p>
+
+        <div class="custom" id="customBox" style="display: none">
+          <input
+            id="customInput"
+            type="text"
+            placeholder="Type any English word or sentence…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="btn" id="customSet" type="button">Set</button>
+        </div>
+
+        <div class="controls">
+          <button class="btn" id="listen" type="button">
+            <span class="ico">🔊</span> Listen
+          </button>
+          <button class="btn mic" id="mic" type="button">
+            <span class="ico">🎙️</span> <span id="micLabel">Tap &amp; speak</span>
+          </button>
+          <button class="btn" id="record" type="button">
+            <span class="ico">⏺️</span> Record me
+          </button>
+        </div>
+
+        <section class="result" id="result" aria-live="polite">
+          <div class="score-row">
+            <div class="ring" id="ring" data-score="0" role="img"></div>
+            <div class="score-text">
+              <p class="verdict" id="verdict"></p>
+              <p class="heard" id="heard"></p>
+            </div>
+          </div>
+          <div class="playback" id="playback">
+            <span class="lbl">Your recording</span>
+            <audio id="player" controls></audio>
+          </div>
+        </section>
+
+        <div class="nav">
+          <button class="btn" id="prev" type="button">← Previous</button>
+          <button class="btn" id="next" type="button">Next →</button>
+        </div>
+      </main>
+
+      <p class="note">
+        Works best in Chrome, Edge, or Arc with a microphone. Speech recognition
+        needs an internet connection.
+      </p>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ---------- Content ---------- */
+      const LIBRARY = {
+        beginner: [
+          { text: "thank you", ipa: "/θæŋk juː/", tip: "Soft 'th' — tongue behind teeth" },
+          { text: "three", ipa: "/θriː/", tip: "'th' + 'r', not 'tree'" },
+          { text: "very", ipa: "/ˈvɛri/", tip: "'v', not 'b' — bite your lip" },
+          { text: "water", ipa: "/ˈwɔːtər/", tip: "Rounded 'w', soft 't'" },
+          { text: "world", ipa: "/wɜːrld/", tip: "'r' + 'l' together" },
+          { text: "Thursday", ipa: "/ˈθɜːrzdeɪ/", tip: "'th', not 't'" },
+          { text: "sheep", ipa: "/ʃiːp/", tip: "Long 'ee' sound" },
+          { text: "ship", ipa: "/ʃɪp/", tip: "Short 'i' — not 'sheep'" },
+          { text: "beach", ipa: "/biːtʃ/", tip: "Long 'ee'" },
+          { text: "comfortable", ipa: "/ˈkʌmftəbəl/", tip: "Only 3 syllables: KUMF-ta-bul" },
+        ],
+        intermediate: [
+          { text: "Thank you very much.", ipa: "", tip: "Watch 'th' and 'v'" },
+          { text: "The weather is nice today.", ipa: "", tip: "'th' twice" },
+          { text: "I would like a glass of water.", ipa: "", tip: "Linking words smoothly" },
+          { text: "She sells seashells by the seashore.", ipa: "", tip: "'s' vs 'sh'" },
+          { text: "I think this is the third one.", ipa: "", tip: "Four 'th' sounds" },
+          { text: "Could you repeat that, please?", ipa: "", tip: "Soft 'd', rising tone" },
+          { text: "They are leaving on Thursday.", ipa: "", tip: "'th' voiced vs voiceless" },
+          { text: "It's a beautiful vineyard.", ipa: "", tip: "'v' and silent 'e' in vineyard" },
+        ],
+        advanced: [
+          {
+            text: "The thirty-three thieves thought they thrilled the throne.",
+            ipa: "",
+            tip: "Nonstop 'th' and 'thr'",
+          },
+          {
+            text: "She understood the thorough thoughts thoroughly.",
+            ipa: "",
+            tip: "'th' + 'or' control",
+          },
+          {
+            text: "A proper copper coffee pot.",
+            ipa: "",
+            tip: "Hard 'p' and short 'o'",
+          },
+          {
+            text: "Red lorry, yellow lorry, red lorry.",
+            ipa: "",
+            tip: "'r' and 'l' alternation",
+          },
+          {
+            text: "I thoroughly enjoyed the rhythm of the music.",
+            ipa: "",
+            tip: "'rhythm' = RITH-um",
+          },
+          {
+            text: "Entrepreneurs frequently negotiate thoroughly.",
+            ipa: "",
+            tip: "Stress and schwa control",
+          },
+        ],
+      };
+
+      /* ---------- State ---------- */
+      let level = "beginner";
+      let index = 0;
+      let customItem = null;
+
+      /* ---------- Elements ---------- */
+      const $ = (id) => document.getElementById(id);
+      const levelBtns = [...document.querySelectorAll(".level-btn")];
+      const banner = $("banner");
+      const progressEl = $("progress");
+      const tipEl = $("tip");
+      const targetEl = $("target");
+      const phoneticEl = $("phonetic");
+      const customBox = $("customBox");
+      const customInput = $("customInput");
+      const resultEl = $("result");
+      const ringEl = $("ring");
+      const verdictEl = $("verdict");
+      const heardEl = $("heard");
+      const playbackEl = $("playback");
+      const playerEl = $("player");
+      const micBtn = $("mic");
+      const micLabel = $("micLabel");
+
+      /* ---------- Speech synthesis (the model voice) ---------- */
+      let enVoice = null;
+      function pickVoice() {
+        const voices = speechSynthesis.getVoices();
+        enVoice =
+          voices.find((v) => /en[-_]US/i.test(v.lang) && /google|samantha|natural|aria/i.test(v.name)) ||
+          voices.find((v) => /en[-_]US/i.test(v.lang)) ||
+          voices.find((v) => /^en/i.test(v.lang)) ||
+          null;
+      }
+      if ("speechSynthesis" in window) {
+        pickVoice();
+        speechSynthesis.onvoiceschanged = pickVoice;
+      }
+
+      function speak(text) {
+        if (!("speechSynthesis" in window)) {
+          showBanner("Your browser can't play the model voice (no speech synthesis).");
+          return;
+        }
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "en-US";
+        u.rate = 0.92;
+        if (enVoice) u.voice = enVoice;
+        speechSynthesis.speak(u);
+      }
+
+      /* ---------- Current item ---------- */
+      function currentList() {
+        return level === "custom" ? (customItem ? [customItem] : []) : LIBRARY[level];
+      }
+      function current() {
+        return currentList()[index] || null;
+      }
+
+      /* ---------- Rendering ---------- */
+      function renderTarget(marks) {
+        const item = current();
+        if (!item) {
+          targetEl.textContent = "Type a word or sentence to begin.";
+          return;
+        }
+        const words = item.text.split(/\s+/);
+        targetEl.innerHTML = words
+          .map((w, i) => {
+            const cls = marks ? ` ${marks[i] || ""}` : "";
+            return `<span class="w${cls}">${escapeHtml(w)}</span>`;
+          })
+          .join(" ");
+      }
+
+      function render() {
+        const list = currentList();
+        const item = current();
+        clearResult();
+
+        customBox.style.display = level === "custom" ? "flex" : "none";
+
+        if (!item) {
+          progressEl.textContent = "0 / 0";
+          tipEl.classList.add("hidden");
+          renderTarget(null);
+          phoneticEl.textContent = "";
+          setNavDisabled(true);
+          return;
+        }
+
+        progressEl.textContent = `${index + 1} / ${list.length}`;
+        renderTarget(null);
+        phoneticEl.textContent = item.ipa || "";
+        if (item.tip) {
+          tipEl.textContent = "💡 " + item.tip;
+          tipEl.classList.remove("hidden");
+        } else {
+          tipEl.classList.add("hidden");
+        }
+        setNavDisabled(level === "custom");
+      }
+
+      function setNavDisabled(disabled) {
+        $("prev").disabled = disabled || index <= 0;
+        $("next").disabled = disabled || index >= currentList().length - 1;
+      }
+
+      function clearResult() {
+        resultEl.classList.remove("show");
+        playbackEl.classList.remove("show");
+        heardEl.innerHTML = "";
+        verdictEl.textContent = "";
+      }
+
+      /* ---------- Scoring ---------- */
+      function normalize(s) {
+        return s
+          .toLowerCase()
+          .replace(/[.,!?;:'"“”‘’\-()]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function levenshtein(a, b) {
+        const m = a.length,
+          n = b.length;
+        if (!m) return n;
+        if (!n) return m;
+        const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+        for (let j = 0; j <= n; j++) d[0][j] = j;
+        for (let i = 1; i <= m; i++) {
+          for (let j = 1; j <= n; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+          }
+        }
+        return d[m][n];
+      }
+
+      // Longest common subsequence of word arrays -> which target words matched.
+      function matchedWords(targetWords, saidWords) {
+        const m = targetWords.length,
+          n = saidWords.length;
+        const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+        for (let i = 1; i <= m; i++) {
+          for (let j = 1; j <= n; j++) {
+            dp[i][j] =
+              targetWords[i - 1] === saidWords[j - 1]
+                ? dp[i - 1][j - 1] + 1
+                : Math.max(dp[i - 1][j], dp[i][j - 1]);
+          }
+        }
+        const matched = Array(m).fill(false);
+        let i = m,
+          j = n;
+        while (i > 0 && j > 0) {
+          if (targetWords[i - 1] === saidWords[j - 1]) {
+            matched[i - 1] = true;
+            i--;
+            j--;
+          } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+            i--;
+          } else {
+            j--;
+          }
+        }
+        return matched;
+      }
+
+      function scoreSpeech(said) {
+        const item = current();
+        const targetNorm = normalize(item.text);
+        const saidNorm = normalize(said);
+        const tw = targetNorm.split(" ").filter(Boolean);
+        const sw = saidNorm.split(" ").filter(Boolean);
+
+        // Character-level similarity for the overall percentage.
+        const dist = levenshtein(targetNorm, saidNorm);
+        const maxLen = Math.max(targetNorm.length, saidNorm.length) || 1;
+        const pct = Math.max(0, Math.round((1 - dist / maxLen) * 100));
+
+        // Word-level marks against the ORIGINAL (un-normalized) tokens.
+        const matched = matchedWords(tw, sw);
+        const origWords = item.text.split(/\s+/);
+        const marks = origWords.map((w, i) => {
+          const nw = normalize(w);
+          // find this word's position among normalized target words
+          return nw && matched[i] ? "good" : nw ? "bad" : "";
+        });
+
+        return { pct, marks, said: said.trim() };
+      }
+
+      function showScore({ pct, marks, said }) {
+        renderTarget(marks);
+        const color =
+          pct >= 85 ? "var(--good)" : pct >= 60 ? "var(--warn)" : "var(--bad)";
+        ringEl.style.setProperty("--ring-color", color);
+        ringEl.dataset.score = pct + "%";
+        // force reflow so the conic-gradient animates
+        requestAnimationFrame(() => ringEl.style.setProperty("--p", pct));
+
+        verdictEl.textContent =
+          pct >= 90
+            ? "Excellent! 🎉"
+            : pct >= 75
+              ? "Great job 👏"
+              : pct >= 55
+                ? "Getting there 💪"
+                : "Keep practicing 🔁";
+        verdictEl.style.color = color;
+        heardEl.innerHTML = said
+          ? `We heard: <b>“${escapeHtml(said)}”</b>`
+          : "We didn't catch anything — try again a bit louder.";
+        resultEl.classList.add("show");
+      }
+
+      /* ---------- Speech recognition (listen to the user) ---------- */
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      let recognition = null;
+      let listening = false;
+
+      function setupRecognition() {
+        if (!SR) return null;
+        const r = new SR();
+        r.lang = "en-US";
+        r.interimResults = false;
+        r.maxAlternatives = 3;
+        r.continuous = false;
+        r.onresult = (e) => {
+          let best = "";
+          for (const res of e.results) best += res[0].transcript + " ";
+          showScore(scoreSpeech(best.trim()));
+        };
+        r.onerror = (e) => {
+          if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+            showBanner("Microphone blocked. Allow mic access in your browser to practice.");
+          } else if (e.error === "no-speech") {
+            showScore(scoreSpeech(""));
+          }
+        };
+        r.onend = () => {
+          listening = false;
+          micBtn.classList.remove("listening");
+          micLabel.textContent = "Tap & speak";
+        };
+        return r;
+      }
+
+      function toggleListen() {
+        if (!current()) return;
+        if (!SR) {
+          showBanner(
+            "This browser doesn't support speech recognition. Try Chrome, Edge, or Arc. You can still use Listen and Record me."
+          );
+          return;
+        }
+        if (listening) {
+          recognition && recognition.stop();
+          return;
+        }
+        if (!recognition) recognition = setupRecognition();
+        clearResult();
+        try {
+          recognition.start();
+          listening = true;
+          micBtn.classList.add("listening");
+          micLabel.textContent = "Listening… tap to stop";
+        } catch (_) {
+          /* start() can throw if called twice quickly */
+        }
+      }
+
+      /* ---------- Record your own voice (MediaRecorder) ---------- */
+      let mediaRecorder = null;
+      let chunks = [];
+      let recording = false;
+      const recordBtn = $("record");
+
+      async function toggleRecord() {
+        if (recording) {
+          mediaRecorder && mediaRecorder.stop();
+          return;
+        }
+        if (!navigator.mediaDevices || !window.MediaRecorder) {
+          showBanner("Recording isn't supported in this browser.");
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          chunks = [];
+          mediaRecorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+            playerEl.src = URL.createObjectURL(blob);
+            playbackEl.classList.add("show");
+            resultEl.classList.add("show");
+            stream.getTracks().forEach((t) => t.stop());
+            recording = false;
+            recordBtn.innerHTML = '<span class="ico">⏺️</span> Record me';
+          };
+          mediaRecorder.start();
+          recording = true;
+          recordBtn.innerHTML = '<span class="ico">⏹️</span> Stop recording';
+        } catch (_) {
+          showBanner("Microphone blocked. Allow mic access to record yourself.");
+        }
+      }
+
+      /* ---------- Helpers ---------- */
+      function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+        );
+      }
+
+      let bannerTimer = null;
+      function showBanner(msg) {
+        banner.textContent = msg;
+        banner.classList.add("show");
+        clearTimeout(bannerTimer);
+        bannerTimer = setTimeout(() => banner.classList.remove("show"), 6000);
+      }
+
+      function selectLevel(next) {
+        level = next;
+        index = 0;
+        levelBtns.forEach((b) =>
+          b.setAttribute("aria-selected", String(b.dataset.level === level))
+        );
+        render();
+        if (level === "custom") customInput.focus();
+      }
+
+      /* ---------- Events ---------- */
+      levelBtns.forEach((b) =>
+        b.addEventListener("click", () => selectLevel(b.dataset.level))
+      );
+
+      $("listen").addEventListener("click", () => {
+        const item = current();
+        if (item) speak(item.text);
+      });
+      micBtn.addEventListener("click", toggleListen);
+      recordBtn.addEventListener("click", toggleRecord);
+
+      $("prev").addEventListener("click", () => {
+        if (index > 0) {
+          index--;
+          render();
+        }
+      });
+      $("next").addEventListener("click", () => {
+        if (index < currentList().length - 1) {
+          index++;
+          render();
+        }
+      });
+
+      $("customSet").addEventListener("click", setCustom);
+      customInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") setCustom();
+      });
+      function setCustom() {
+        const text = customInput.value.trim();
+        if (!text) return;
+        customItem = { text, ipa: "", tip: "" };
+        index = 0;
+        render();
+      }
+
+      // Keyboard shortcuts: L = listen, Space = speak
+      window.addEventListener("keydown", (e) => {
+        if (e.target.tagName === "INPUT") return;
+        if (e.key === "l" || e.key === "L") {
+          const item = current();
+          if (item) speak(item.text);
+        } else if (e.code === "Space") {
+          e.preventDefault();
+          toggleListen();
+        }
+      });
+
+      /* ---------- Init ---------- */
+      if (!SR) {
+        showBanner(
+          "Heads up: this browser has no speech recognition, so scoring is off. Listen and Record me still work. For scoring, use Chrome, Edge, or Arc."
+        );
+      }
+      selectLevel("beginner");
+    </script>
+  </body>
+</html>
