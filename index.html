@@ -211,8 +211,87 @@
       }
 
       .target .w.bad {
-        background: var(--bad-soft);
+        color: var(--ink);
+      }
+
+      .target .ch-bad {
         color: var(--bad);
+        background: var(--bad-soft);
+        border-radius: 5px;
+        text-decoration: underline wavy var(--bad);
+        text-underline-offset: 4px;
+      }
+
+      .feedback {
+        margin-top: 16px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .fb-good {
+        background: var(--good-soft);
+        color: var(--good);
+        font-weight: 600;
+        font-size: 14px;
+        padding: 12px 14px;
+        border-radius: 12px;
+      }
+
+      .fb-item {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--bad);
+        border-radius: 12px;
+        padding: 12px 14px;
+        text-align: left;
+      }
+
+      .fb-word {
+        font-weight: 700;
+        font-size: 15px;
+      }
+
+      .fb-heard {
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .fb-sound {
+        color: var(--bad);
+        font-weight: 600;
+        font-size: 13px;
+        margin-top: 3px;
+      }
+
+      .fb-tip {
+        color: var(--muted);
+        font-size: 13.5px;
+        line-height: 1.5;
+        margin-top: 5px;
+      }
+
+      .fb-try {
+        margin-top: 9px;
+        font-size: 13px;
+        color: var(--ink);
+      }
+
+      .fb-ex {
+        border: 1px solid var(--line);
+        background: var(--accent-soft);
+        color: var(--accent-ink);
+        font: inherit;
+        font-weight: 600;
+        font-size: 13px;
+        padding: 5px 11px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: background 150ms ease;
+      }
+
+      .fb-ex:hover {
+        background: #e3e6ff;
       }
 
       .phonetic {
@@ -554,6 +633,7 @@
               <p class="heard" id="heard"></p>
             </div>
           </div>
+          <div class="feedback" id="feedback"></div>
           <div class="playback" id="playback">
             <span class="lbl">Your recording</span>
             <audio id="player" controls></audio>
@@ -694,7 +774,7 @@
       }
 
       /* ---------- Rendering ---------- */
-      function renderTarget(marks) {
+      function renderTarget(results) {
         const item = current();
         if (!item) {
           targetEl.textContent = "Type a word or sentence to begin.";
@@ -703,8 +783,14 @@
         const words = item.text.split(/\s+/);
         targetEl.innerHTML = words
           .map((w, i) => {
-            const cls = marks ? ` ${marks[i] || ""}` : "";
-            return `<span class="w${cls}">${escapeHtml(w)}</span>`;
+            const r = results && results[i];
+            if (!r || r.status === "skip") {
+              return `<span class="w">${escapeHtml(w)}</span>`;
+            }
+            if (r.status === "good") {
+              return `<span class="w good">${escapeHtml(w)}</span>`;
+            }
+            return `<span class="w bad">${wordWithBadChars(w, r.badIdx)}</span>`;
           })
           .join(" ");
       }
@@ -747,6 +833,7 @@
         playbackEl.classList.remove("show");
         heardEl.innerHTML = "";
         verdictEl.textContent = "";
+        document.getElementById("feedback").innerHTML = "";
       }
 
       /* ---------- Scoring ---------- */
@@ -804,32 +891,245 @@
         return matched;
       }
 
-      function scoreSpeech(said) {
+      // Letters-only, lowercase form of a single word.
+      function normalizeWord(w) {
+        return w.toLowerCase().replace(/[^a-z]/g, "");
+      }
+
+      // Closest heard word to a target word (by edit distance).
+      function closestWord(target, saidWords) {
+        let best = "",
+          bd = Infinity;
+        for (const sw of saidWords) {
+          const d = levenshtein(target, sw);
+          if (d < bd) {
+            bd = d;
+            best = sw;
+          }
+        }
+        return best;
+      }
+
+      // Which letter positions of `a` (target) were wrong vs `b` (heard).
+      function alignBad(a, b) {
+        a = a || "";
+        b = b || "";
+        if (!a) return new Set();
+        if (!b) return new Set(a.split("").map((_, i) => i));
+        const m = a.length,
+          n = b.length;
+        const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+        for (let i = 1; i <= m; i++)
+          for (let j = 1; j <= n; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(
+              dp[i - 1][j] + 1,
+              dp[i][j - 1] + 1,
+              dp[i - 1][j - 1] + cost
+            );
+          }
+        const bad = new Set();
+        let i = m,
+          j = n;
+        while (i > 0 || j > 0) {
+          if (i > 0 && j > 0 && a[i - 1] === b[j - 1] && dp[i][j] === dp[i - 1][j - 1]) {
+            i--;
+            j--;
+          } else if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + 1) {
+            bad.add(i - 1);
+            i--;
+            j--;
+          } else if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) {
+            bad.add(i - 1);
+            i--;
+          } else {
+            j--;
+          }
+        }
+        return bad;
+      }
+
+      // Coaching tips keyed by sound.
+      const SOUND_TIPS = {
+        th_voiceless: {
+          label: "The “th” sound (θ)",
+          tip: "Put your tongue between your teeth and blow softly. Don't say it like “t” or “s”.",
+          example: "think",
+        },
+        th_voiced: {
+          label: "The “th” sound (ð)",
+          tip: "Tongue between your teeth, but turn your voice on — you should feel a buzz.",
+          example: "this",
+        },
+        v: {
+          label: "The “v” sound",
+          tip: "Bite your lower lip lightly and buzz. Don't press both lips together — that makes a “b”.",
+          example: "very",
+        },
+        sh: {
+          label: "The “sh” sound",
+          tip: "Round your lips and push steady air: “shhh”. Keep it smooth, not a hard “ch”.",
+          example: "ship",
+        },
+        ch: {
+          label: "The “ch” sound",
+          tip: "Start with a “t”, then release into “sh”: t-sh.",
+          example: "cheese",
+        },
+        r: {
+          label: "The “r” sound",
+          tip: "Don't roll it like a Spanish “r”. Curl your tongue back without touching the roof of your mouth.",
+          example: "red",
+        },
+        l: {
+          label: "The “l” sound",
+          tip: "Touch the tip of your tongue just behind your top teeth.",
+          example: "light",
+        },
+        vowel_long_e: {
+          label: "The long “ee” vowel",
+          tip: "Stretch it — tense and long, like in “sheep”.",
+          example: "sheep",
+        },
+        vowel_short_i: {
+          label: "The short “i” vowel",
+          tip: "Keep it short and relaxed (ship), not long like “ee” (sheep).",
+          example: "ship",
+        },
+        w: {
+          label: "The “w” sound",
+          tip: "Round your lips like a small kiss, then glide into the vowel.",
+          example: "water",
+        },
+        h: {
+          label: "The “h” sound",
+          tip: "Breathe out gently at the start of the word — don't make it silent.",
+          example: "hello",
+        },
+        generic: {
+          label: "This part of the word",
+          tip: "Listen to the model again and repeat slowly, one syllable at a time.",
+          example: null,
+        },
+      };
+
+      // Highlight common digraphs as a unit so "th", "sh"… underline together.
+      function expandBad(word, badIdx) {
+        const digraphs = ["th", "sh", "ch", "ph", "wh", "ck", "ng", "ee", "ea", "oo"];
+        for (const dg of digraphs) {
+          let from = 0,
+            idx;
+          while ((idx = word.indexOf(dg, from)) !== -1) {
+            if (badIdx.has(idx) || badIdx.has(idx + 1)) {
+              badIdx.add(idx);
+              badIdx.add(idx + 1);
+            }
+            from = idx + 1;
+          }
+        }
+        return badIdx;
+      }
+
+      // Pick the most relevant sound tip for the mispronounced region.
+      function detectSound(word, badIdx) {
+        let seg = word;
+        if (badIdx && badIdx.size) {
+          const idxs = [...badIdx].sort((a, b) => a - b);
+          const lo = Math.max(0, idxs[0] - 1);
+          const hi = Math.min(word.length, idxs[idxs.length - 1] + 2);
+          seg = word.slice(lo, hi);
+        }
+        const voiced =
+          /^(the|this|that|these|those|they|them|their|there|then|than|though|rhythm|weather|mother|brother|other|together|leaving)$/;
+        if (/th/.test(seg))
+          return SOUND_TIPS[voiced.test(word) ? "th_voiced" : "th_voiceless"];
+        if (/v/.test(seg)) return SOUND_TIPS.v;
+        if (/sh/.test(seg)) return SOUND_TIPS.sh;
+        if (/ch/.test(seg)) return SOUND_TIPS.ch;
+        if (/(ee|ea)/.test(seg)) return SOUND_TIPS.vowel_long_e;
+        if (/r/.test(seg)) return SOUND_TIPS.r;
+        if (/^h/.test(word) && badIdx && badIdx.has(0)) return SOUND_TIPS.h;
+        if (/w/.test(seg)) return SOUND_TIPS.w;
+        if (/i/.test(seg)) return SOUND_TIPS.vowel_short_i;
+        if (/l/.test(seg)) return SOUND_TIPS.l;
+        return SOUND_TIPS.generic;
+      }
+
+      // Full analysis of what the learner said vs the target.
+      function analyze(said) {
         const item = current();
         const targetNorm = normalize(item.text);
         const saidNorm = normalize(said);
-        const tw = targetNorm.split(" ").filter(Boolean);
+        const origWords = item.text.split(/\s+/);
+        const tw = origWords.map(normalizeWord);
         const sw = saidNorm.split(" ").filter(Boolean);
 
-        // Character-level similarity for the overall percentage.
         const dist = levenshtein(targetNorm, saidNorm);
         const maxLen = Math.max(targetNorm.length, saidNorm.length) || 1;
         const pct = Math.max(0, Math.round((1 - dist / maxLen) * 100));
 
-        // Word-level marks against the ORIGINAL (un-normalized) tokens.
-        const matched = matchedWords(tw, sw);
-        const origWords = item.text.split(/\s+/);
-        const marks = origWords.map((w, i) => {
-          const nw = normalize(w);
-          // find this word's position among normalized target words
-          return nw && matched[i] ? "good" : nw ? "bad" : "";
+        const matched = matchedWords(tw.filter(Boolean), sw);
+        let ci = 0;
+        const results = origWords.map((w, i) => {
+          const nw = tw[i];
+          if (!nw) return { status: "skip" };
+          const isMatched = matched[ci++];
+          if (isMatched) return { status: "good" };
+          const heard = closestWord(nw, sw);
+          const badIdx = expandBad(nw, alignBad(nw, heard));
+          return { status: "bad", word: w, heard, badIdx, sound: detectSound(nw, badIdx) };
         });
 
-        return { pct, marks, said: said.trim() };
+        return { pct, results, said: said.trim() };
       }
 
-      function showScore({ pct, marks, said }) {
-        renderTarget(marks);
+      function wordWithBadChars(word, badIdx) {
+        let ni = 0,
+          out = "";
+        for (const ch of word) {
+          if (/[a-z]/i.test(ch)) {
+            const bad = badIdx && badIdx.has(ni);
+            out += `<span class="ch${bad ? " ch-bad" : ""}">${escapeHtml(ch)}</span>`;
+            ni++;
+          } else {
+            out += escapeHtml(ch);
+          }
+        }
+        return out;
+      }
+
+      function renderFeedback(list) {
+        const box = document.getElementById("feedback");
+        if (!list.length) {
+          box.innerHTML =
+            '<div class="fb-good">✓ Every word matched. Great pronunciation!</div>';
+          return;
+        }
+        box.innerHTML = list
+          .map((r) => {
+            const heard = r.heard
+              ? ` <span class="fb-heard">we heard “${escapeHtml(r.heard)}”</span>`
+              : "";
+            const ex = r.sound.example
+              ? `<div class="fb-try">Try it: <button class="fb-ex" type="button" data-word="${escapeHtml(
+                  r.sound.example
+                )}">🔊 ${escapeHtml(r.sound.example)}</button></div>`
+              : "";
+            return `<div class="fb-item">
+              <div class="fb-word">“${escapeHtml(r.word)}”${heard}</div>
+              <div class="fb-sound">${r.sound.label}</div>
+              <div class="fb-tip">${r.sound.tip}</div>
+              ${ex}
+            </div>`;
+          })
+          .join("");
+      }
+
+      function showScore(a) {
+        renderTarget(a.results);
+        const pct = a.pct;
         const color =
           pct >= 85 ? "var(--good)" : pct >= 60 ? "var(--warn)" : "var(--bad)";
         ringEl.style.setProperty("--ring-color", color);
@@ -846,9 +1146,11 @@
                 ? "Getting there 💪"
                 : "Keep practicing 🔁";
         verdictEl.style.color = color;
-        heardEl.innerHTML = said
-          ? `We heard: <b>“${escapeHtml(said)}”</b>`
+        heardEl.innerHTML = a.said
+          ? `We heard: <b>“${escapeHtml(a.said)}”</b>`
           : "We didn't catch anything — try again a bit louder.";
+
+        renderFeedback(a.results.filter((r) => r.status === "bad"));
         resultEl.classList.add("show");
       }
 
@@ -867,13 +1169,13 @@
         r.onresult = (e) => {
           let best = "";
           for (const res of e.results) best += res[0].transcript + " ";
-          showScore(scoreSpeech(best.trim()));
+          showScore(analyze(best.trim()));
         };
         r.onerror = (e) => {
           if (e.error === "not-allowed" || e.error === "service-not-allowed") {
             showBanner("Microphone blocked. Allow mic access in your browser to practice.");
           } else if (e.error === "no-speech") {
-            showScore(scoreSpeech(""));
+            showScore(analyze(""));
           }
         };
         r.onend = () => {
@@ -981,6 +1283,11 @@
       });
       micBtn.addEventListener("click", toggleListen);
       recordBtn.addEventListener("click", toggleRecord);
+
+      document.getElementById("feedback").addEventListener("click", (e) => {
+        const b = e.target.closest(".fb-ex");
+        if (b) speak(b.dataset.word);
+      });
 
       $("prev").addEventListener("click", () => {
         if (index > 0) {
